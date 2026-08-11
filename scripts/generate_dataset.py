@@ -109,9 +109,9 @@ def main() -> None:
         "rollout_steps": args.rollout_steps if args.target_mode == "rollout" else 0,
         "discount": args.discount,
         "workers": args.workers,
-        "config": str(args.config) if args.config else None,
+        "config": args.config.relative_to(PROJECT_ROOT).as_posix() if args.config else None,
         "samples": len(dataset),
-        "split_paths": {name: str(path) for name, path in paths.items()},
+        "split_paths": {name: path.relative_to(PROJECT_ROOT).as_posix() for name, path in paths.items()},
     }
     (args.output_dir / "dataset_metadata.json").write_text(
         json.dumps(metadata, indent=2),

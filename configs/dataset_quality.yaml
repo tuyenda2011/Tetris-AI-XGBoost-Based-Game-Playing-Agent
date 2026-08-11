@@ -1,5 +1,5 @@
 dataset:
-  episodes: 300
+  episodes: 1000
   max_pieces: 200
   seed: 42
   epsilon: 0.20
@@ -7,4 +7,4 @@ dataset:
   rollout_steps: 3
   discount: 0.92
   workers: 4
-  output_dir: data/processed_300_r3
+  output_dir: data/processed_1000_r3
