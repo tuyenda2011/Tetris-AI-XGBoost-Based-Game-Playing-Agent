@@ -26,12 +26,14 @@ def heuristic_quality(candidate: CandidateAction) -> float:
 
     f = candidate.features
     return (
-        0.760666 * f["cleared_lines"]
-        - 0.510066 * f["aggregate_height"]
-        - 0.35663 * f["holes"]
-        - 0.184483 * f["bumpiness"]
-        - 0.08 * f["wells"]
-        - 0.02 * f["landing_height"]
+        1.5 * f["cleared_lines"]
+        - 1.0 * f["landing_height"]
+        - 1.0 * f["row_transitions"]
+        - 1.0 * f["col_transitions"]
+        - 8.0 * f["holes"]
+        - 1.5 * f["wells"]
+        - 0.5 * f["bumpiness"]
+        - 0.2 * f["aggregate_height"]
     )
 
 
@@ -44,10 +46,12 @@ def _static_board_value(board: np.ndarray) -> float:
 
     f = extract_heuristic_features(board)
     return (
-        -0.510066 * f["aggregate_height"]
-        - 0.35663 * f["holes"]
-        - 0.184483 * f["bumpiness"]
-        - 0.08 * f["wells"]
+        -1.0 * f["row_transitions"]
+        - 1.0 * f["col_transitions"]
+        - 8.0 * f["holes"]
+        - 1.5 * f["wells"]
+        - 0.5 * f["bumpiness"]
+        - 0.2 * f["aggregate_height"]
     )
 
 

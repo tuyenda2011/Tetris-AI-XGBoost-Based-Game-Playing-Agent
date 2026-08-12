@@ -78,13 +78,9 @@ python scripts/generate_dataset.py --config configs/dataset_quality.yaml
 ```
 
 ### Step 3: Train Model
-Train the XGBoost regressor on decision-grouped dataset splits:
+Train and tune the XGBoost regressor using the training configuration:
 ```bash
-python scripts/train_model.py --seed 42
-```
-*Optional hyperparameter tuning:*
-```bash
-python scripts/train_model.py --tune --n-iter 12 --cv-folds 3 --seed 42
+python scripts/train_model.py --config configs/model_train.yaml
 ```
 
 ### Step 4: Evaluate Agent Performance

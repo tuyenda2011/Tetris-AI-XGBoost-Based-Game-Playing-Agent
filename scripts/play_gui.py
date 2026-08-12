@@ -197,7 +197,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--model-path", type=Path,
                    default=MODEL_DIR / "xgboost_tetris.joblib")
     p.add_argument("--seed", type=int, default=42)
-    p.add_argument("--max-pieces", type=int, default=500)
+    p.add_argument("--max-pieces", type=int, default=100000,
+                   help="Maximum pieces to play before game over (default 100000)")
     p.add_argument("--delay-ms", type=int, default=120,
                    help="Milliseconds between moves (default 120)")
     return p.parse_args()

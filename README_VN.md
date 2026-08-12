@@ -78,13 +78,9 @@ python scripts/generate_dataset.py --config configs/dataset_quality.yaml
 ```
 
 ### Bước 3: Huấn Luyện Mô Hình (Train Model)
-Train mô hình XGBoost Regressor trên tập dữ liệu đã phân chia theo nhóm quyết định:
+Train và tự động tinh chỉnh mô hình XGBoost Regressor sử dụng file cấu hình:
 ```bash
-python scripts/train_model.py --seed 42
-```
-*Tự động tinh chỉnh tham số (Hyperparameter Tuning):*
-```bash
-python scripts/train_model.py --tune --n-iter 12 --cv-folds 3 --seed 42
+python scripts/train_model.py --config configs/model_train.yaml
 ```
 
 ### Bước 4: Đánh Giá Hiệu Năng (Evaluation)

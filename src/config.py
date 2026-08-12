@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DATA_DIR = PROJECT_ROOT / "data"
+DATA_DIR = PROJECT_ROOT / "data" / "processed_1000_r3"
 MODEL_DIR = PROJECT_ROOT / "models"
 RESULTS_DIR = PROJECT_ROOT / "results"
 
@@ -18,7 +18,7 @@ class EnvConfig:
 
     rows: int = 20
     cols: int = 10
-    max_pieces: int = 500
+    max_pieces: int = 100000
     seed: int = 42
 
 
@@ -35,8 +35,8 @@ class TrainingConfig:
 
 DEFAULT_XGB_PARAMS = {
     "objective": "reg:squarederror",
-    "n_estimators": 240,
-    "max_depth": 4,
+    "n_estimators": 350,
+    "max_depth": 6,
     "learning_rate": 0.05,
     "subsample": 0.9,
     "colsample_bytree": 0.9,
@@ -44,6 +44,7 @@ DEFAULT_XGB_PARAMS = {
     "reg_alpha": 0.01,
     "reg_lambda": 1.0,
     "random_state": 42,
-    "n_jobs": -1,
+    "tree_method": "hist",
+    "device": "cuda",
 }
 

@@ -1,0 +1,5 @@
+training:
+  data_dir: data/processed
+  model_dir: models
+  seed: 42
+  tune: true

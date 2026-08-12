@@ -10,10 +10,13 @@ Board = np.ndarray
 
 BASE_FEATURE_NAMES = [
     "aggregate_height",
+    "center_height",
     "max_height",
     "min_height",
     "holes",
     "bumpiness",
+    "row_transitions",
+    "col_transitions",
     "occupied_cells",
     "cleared_lines",
     "wells",
@@ -27,8 +30,11 @@ COLUMN_DIFF_NAMES = [f"column_diff_{idx}" for idx in range(9)]
 FEATURE_NAMES = BASE_FEATURE_NAMES + COLUMN_DIFF_NAMES
 HEURISTIC_FEATURE_NAMES = [
     "aggregate_height",
+    "center_height",
     "holes",
     "bumpiness",
+    "row_transitions",
+    "col_transitions",
     "wells",
     "cleared_lines",
     "landing_height",
@@ -64,6 +70,22 @@ def count_wells(board: Board) -> int:
     return int(np.sum(~filled & left_blocked & right_blocked))
 
 
+def count_row_transitions(board: Board) -> int:
+    """Count state changes (empty<->filled) along rows, treating board walls as filled."""
+
+    b = (board > 0).astype(np.int8)
+    padded = np.pad(b, ((0, 0), (1, 1)), constant_values=1)
+    return int(np.sum(padded[:, :-1] != padded[:, 1:]))
+
+
+def count_col_transitions(board: Board) -> int:
+    """Count state changes (empty<->filled) along columns, treating board floor as filled."""
+
+    b = (board > 0).astype(np.int8)
+    padded = np.pad(b, ((0, 1), (0, 0)), constant_values=1)
+    return int(np.sum(padded[:-1, :] != padded[1:, :]))
+
+
 def extract_features(
     board: Board,
     *,
@@ -78,13 +100,17 @@ def extract_features(
     occupied = float(np.sum(board))
     row_occupancy = np.mean(np.sum(board, axis=1) / board.shape[1])
     column_density = np.mean(heights / board.shape[0])
+    center_h = float(np.sum(heights[3:7])) if len(heights) >= 7 else 0.0
 
     features: OrderedDict[str, float] = OrderedDict()
     features["aggregate_height"] = float(np.sum(heights))
+    features["center_height"] = center_h
     features["max_height"] = float(np.max(heights))
     features["min_height"] = float(np.min(heights))
     features["holes"] = float(count_holes(board))
     features["bumpiness"] = float(np.sum(np.abs(diffs)))
+    features["row_transitions"] = float(count_row_transitions(board))
+    features["col_transitions"] = float(count_col_transitions(board))
     features["occupied_cells"] = occupied
     features["cleared_lines"] = float(cleared_lines)
     features["wells"] = float(count_wells(board))
@@ -108,10 +134,14 @@ def extract_heuristic_features(
     board = (board > 0).astype(np.int8)
     heights = column_heights(board)
     diffs = np.diff(heights)
+    center_h = float(np.sum(heights[3:7])) if len(heights) >= 7 else 0.0
     return {
         "aggregate_height": float(np.sum(heights)),
+        "center_height": center_h,
         "holes": float(count_holes(board)),
         "bumpiness": float(np.sum(np.abs(diffs))),
+        "row_transitions": float(count_row_transitions(board)),
+        "col_transitions": float(count_col_transitions(board)),
         "wells": float(count_wells(board)),
         "cleared_lines": float(cleared_lines),
         "landing_height": float(landing_height),
@@ -132,3 +162,4 @@ def feature_vector(
         landing_height=landing_height,
     )
     return np.array([features[name] for name in FEATURE_NAMES], dtype=float)
+
