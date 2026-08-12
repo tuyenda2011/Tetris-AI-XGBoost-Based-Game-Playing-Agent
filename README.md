@@ -21,9 +21,9 @@
     <td align="center"><b>Random Agent</b><br>(Baseline)</td>
   </tr>
   <tr>
-    <td><img src="assets/xgboost_demo.gif" width="280"></td>
-    <td><img src="assets/heuristic_demo.gif" width="280"></td>
-    <td><img src="assets/random_demo.gif" width="280"></td>
+    <td width="33%"><img src="assets/xgboost_demo.gif" width="100%"></td>
+    <td width="33%"><img src="assets/heuristic_demo.gif" width="100%"></td>
+    <td width="33%"><img src="assets/random_demo.gif" width="100%"></td>
   </tr>
 </table>
 
