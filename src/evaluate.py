@@ -40,6 +40,12 @@ def run_episode(
     }
 
 
+def run_episode_wrapper(args: tuple) -> dict[str, float | int]:
+    """Top-level wrapper to unpack arguments for ProcessPoolExecutor."""
+    agent, seed, max_pieces, render = args
+    return run_episode(agent, seed=seed, max_pieces=max_pieces, render=render)
+
+
 def evaluate_agent(
     agent: Agent,
     *,
@@ -50,10 +56,34 @@ def evaluate_agent(
 ) -> pd.DataFrame:
     """Evaluate an agent across multiple random seeds."""
 
-    rows = [
-        run_episode(agent, seed=seed + idx, max_pieces=max_pieces, render=render)
-        for idx in range(episodes)
-    ]
+    from tqdm import tqdm
+    import concurrent.futures
+    import multiprocessing
+
+    rows = []
+    agent_name = agent.__class__.__name__.replace("Agent", "")
+    pbar = tqdm(
+        total=episodes,
+        desc=f"  Evaluating {agent_name} [{episodes} ep, {max_pieces} max_pcs]",
+        unit="ep",
+        dynamic_ncols=True,
+        colour="magenta",
+        leave=True,
+    )
+
+    args_list = [(agent, seed + idx, max_pieces, render) for idx in range(episodes)]
+    max_workers = 1 if render else max(1, multiprocessing.cpu_count() - 1)
+
+    with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
+        for result in executor.map(run_episode_wrapper, args_list):
+            rows.append(result)
+            pbar.update(1)
+            pbar.set_postfix(
+                score=f"{result['score']:.0f}",
+                pcs=f"{result['pieces_placed']:.0f}"
+            )
+    pbar.close()
+
     return pd.DataFrame(rows)
 
 

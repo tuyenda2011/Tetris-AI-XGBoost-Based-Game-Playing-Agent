@@ -13,7 +13,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.agent import RandomAgent, XGBoostAgent
+from src.agent import RandomAgent, XGBoostAgent, HeuristicAgent
 from src.config import MODEL_DIR, RESULTS_DIR
 from src.evaluate import evaluate_agent, save_evaluation, summarize_metrics
 from src.model import load_model
@@ -45,6 +45,7 @@ def main() -> None:
         )
     random_agent = RandomAgent(seed=args.seed)
     xgb_agent = XGBoostAgent(model_path=args.model_path)
+    heuristic_agent = HeuristicAgent()
 
     metrics_dir = args.output_dir / "metrics"
     figures_dir = args.output_dir / "figures"
@@ -64,17 +65,30 @@ def main() -> None:
         max_pieces=args.max_pieces,
         render=args.render,
     )
+    heuristic_results = evaluate_agent(
+        heuristic_agent,
+        episodes=args.episodes,
+        seed=args.seed,
+        max_pieces=args.max_pieces,
+        render=args.render,
+    )
     save_evaluation(random_results, metrics_dir, "random")
     save_evaluation(xgb_results, metrics_dir, "xgboost")
+    save_evaluation(heuristic_results, metrics_dir, "heuristic")
     comparison = pd.concat(
         [
             summarize_metrics(random_results).assign(agent="random"),
             summarize_metrics(xgb_results).assign(agent="xgboost"),
+            summarize_metrics(heuristic_results).assign(agent="heuristic"),
         ],
         ignore_index=True,
     )
     comparison.to_csv(metrics_dir / "comparison_summary.csv", index=False)
-    plot_evaluation({"random": random_results, "xgboost": xgb_results}, figures_dir)
+    plot_evaluation({
+        "random": random_results, 
+        "xgboost": xgb_results,
+        "heuristic": heuristic_results
+    }, figures_dir)
 
     model = load_model(args.model_path)
     plot_feature_importance(model, figures_dir)

@@ -86,7 +86,7 @@ python scripts/train_model.py --config configs/model_train.yaml
 ### Bước 4: Đánh Giá Hiệu Năng (Evaluation)
 So sánh hiệu năng của XGBoost Agent với Random Agent baseline:
 ```bash
-python scripts/evaluate_agent.py --episodes 10 --max-pieces 120 --seed 42 --skip-shap
+python scripts/evaluate_agent.py --episodes 20 --max-pieces 2000 --seed 42
 ```
 
 ### Bước 5: Mở Demo Giao Diện Đồ Họa (Pygame GUI)

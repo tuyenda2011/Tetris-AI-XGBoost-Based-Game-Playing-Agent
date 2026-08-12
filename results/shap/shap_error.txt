@@ -1,0 +1,4 @@
+SHAP artifact generation failed, but model evaluation completed.
+Error type: ValueError
+Error message: could not convert string to float: '[-1.7702658E2]'
+Try rerunning with --skip-shap, or install compatible SHAP/XGBoost versions.

@@ -28,11 +28,14 @@ def plot_evaluation(results: dict[str, pd.DataFrame], output_dir: Path) -> None:
 
     for metric in ["score", "lines_cleared"]:
         plt.figure(figsize=(8, 5))
-        for agent_name, group in data.groupby("agent"):
-            plt.hist(group[metric], alpha=0.55, label=agent_name, bins=10)
-        plt.xlabel(metric.replace("_", " ").title())
-        plt.ylabel("Episode Count")
-        plt.legend()
+        agents = data["agent"].unique()
+        plot_data = [data[data["agent"] == a][metric].values for a in agents]
+        
+        plt.boxplot(plot_data, tick_labels=agents, patch_artist=True)
+        plt.ylabel(metric.replace("_", " ").title())
+        plt.title(f"{metric.replace('_', ' ').title()} Distribution by Agent")
+        
+        plt.grid(axis='y', linestyle='--', alpha=0.7)
         plt.tight_layout()
         plt.savefig(output_dir / f"{metric}_distribution.png", dpi=160)
         plt.close()

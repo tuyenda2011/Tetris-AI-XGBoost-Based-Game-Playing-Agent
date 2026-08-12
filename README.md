@@ -86,7 +86,7 @@ python scripts/train_model.py --config configs/model_train.yaml
 ### Step 4: Evaluate Agent Performance
 Compare the trained XGBoost Agent against a Random Agent baseline:
 ```bash
-python scripts/evaluate_agent.py --episodes 10 --max-pieces 120 --seed 42 --skip-shap
+python scripts/evaluate_agent.py --episodes 20 --max-pieces 2000 --seed 42
 ```
 
 ### Step 5: Run Pygame GUI Demo
