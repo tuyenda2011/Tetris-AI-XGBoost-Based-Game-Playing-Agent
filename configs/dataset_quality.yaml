@@ -1,10 +1,10 @@
 dataset:
-  episodes: 50
+  episodes: 200
   max_pieces: 2000
   seed: 42
   epsilon: 0.05
-  target_mode: rollout
-  rollout_steps: 3
+  target_mode: immediate
+  rollout_steps: 0
   discount: 0.92
   workers: 8
   output_dir: data/processed

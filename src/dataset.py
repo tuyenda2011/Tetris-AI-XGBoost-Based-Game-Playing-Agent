@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import sys
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
@@ -11,6 +10,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
+from tqdm import tqdm
 
 from src.actions import CandidateAction, generate_candidate_actions
 from src.config import EnvConfig, TrainingConfig
@@ -91,28 +91,6 @@ def _choose_behavior_action(
         return candidates[int(rng.integers(0, len(candidates)))]
     return max(candidates, key=heuristic_quality)
 
-
-def _print_progress(episode: int, episodes: int, samples: int, start_time: float) -> None:
-    """Print a compact progress bar to stdout."""
-    done = episode + 1
-    pct = done / episodes
-    bar_len = 30
-    filled = int(bar_len * pct)
-    bar = "#" * filled + "-" * (bar_len - filled)
-    elapsed = time.time() - start_time
-    eta = (elapsed / done) * (episodes - done) if done > 0 else 0.0
-    eta_str = f"{int(eta // 60):02d}:{int(eta % 60):02d}"
-    line = (
-        f"\r  [{bar}] {pct*100:5.1f}%  "
-        f"ep {done:>3}/{episodes}  "
-        f"samples {samples:>7,}  "
-        f"ETA {eta_str}"
-    )
-    sys.stdout.buffer.write(line.encode("utf-8", errors="replace"))
-    sys.stdout.buffer.flush()
-    if done == episodes:
-        sys.stdout.buffer.write(b"\n")
-        sys.stdout.buffer.flush()
 
 
 def _generate_episode_rows(
@@ -203,8 +181,13 @@ def generate_dataset(
     start_time = time.time()
     actual_workers = min(workers, episodes)
 
-    print(f"  Generating {episodes} episodes x {max_pieces} pieces  "
-          f"[rollout={rollout_steps}, mode={target_mode}, workers={actual_workers}]")
+    pbar = tqdm(
+        total=episodes,
+        desc=f"  Generating [{target_mode}, rollout={rollout_steps}, workers={actual_workers}]",
+        unit="ep",
+        dynamic_ncols=True,
+        colour="cyan",
+    )
 
     task_args = {
         "max_pieces": max_pieces,
@@ -219,8 +202,10 @@ def generate_dataset(
     if actual_workers == 1:
         for episode in range(episodes):
             LOGGER.debug("Generating episode %s/%s", episode + 1, episodes)
-            rows.extend(_generate_episode_rows(episode=episode, **task_args))
-            _print_progress(episode, episodes, len(rows), start_time)
+            episode_rows = _generate_episode_rows(episode=episode, **task_args)
+            rows.extend(episode_rows)
+            pbar.update(1)
+            pbar.set_postfix(samples=f"{len(rows):,}", pieces=episode_rows[-1]['piece_index'] if episode_rows else 0)
     else:
         results_by_episode: dict[int, list[DatasetRow]] = {}
         sample_count = 0
@@ -229,14 +214,16 @@ def generate_dataset(
                 executor.submit(_generate_episode_rows, episode=episode, **task_args): episode
                 for episode in range(episodes)
             }
-            for completed, future in enumerate(as_completed(futures), start=1):
+            for future in as_completed(futures):
                 episode = futures[future]
                 episode_rows = future.result()
                 results_by_episode[episode] = episode_rows
                 sample_count += len(episode_rows)
-                _print_progress(completed - 1, episodes, sample_count, start_time)
+                pbar.update(1)
+                pbar.set_postfix(samples=f"{sample_count:,}")
         for episode in range(episodes):
             rows.extend(results_by_episode[episode])
+    pbar.close()
 
     dataset = pd.DataFrame(rows)
     elapsed = time.time() - start_time

@@ -7,7 +7,6 @@ import logging
 from pathlib import Path
 from typing import Any
 
-import sys
 import time
 import warnings
 import joblib
@@ -81,16 +80,25 @@ from tqdm import tqdm
 try:
     from xgboost.callback import TrainingCallback
 
-    class XGBProgressBarCallback(TrainingCallback):
-        def __init__(self, progress_bar: tqdm):
-            super().__init__()
-            self.progress_bar = progress_bar
+    class _TqdmXGBCallback(TrainingCallback):
+        """XGBoost TrainingCallback that ticks a tqdm bar on each boosting round."""
 
-        def after_iteration(self, model, epoch, evals_log):
-            self.progress_bar.update(1)
-            return False
+        def __init__(self, pbar: tqdm) -> None:
+            super().__init__()
+            self._pbar = pbar
+
+        def after_iteration(self, model, epoch: int, evals_log: dict) -> bool:
+            val_rmse = None
+            for dataset_log in evals_log.values():
+                if "rmse" in dataset_log:
+                    val_rmse = dataset_log["rmse"][-1]
+            postfix = {"val_rmse": f"{val_rmse:.4f}"} if val_rmse is not None else {}
+            self._pbar.set_postfix(**postfix)
+            self._pbar.update(1)
+            return False  # returning True would stop training
+
 except ImportError:
-    XGBProgressBarCallback = None
+    _TqdmXGBCallback = None  # type: ignore[assignment,misc]
 
 
 def train_xgboost(
@@ -109,10 +117,17 @@ def train_xgboost(
         model_params.update(params)
 
     n_estimators = model_params.get("n_estimators", 350)
-    pbar = tqdm(total=n_estimators, desc=f"  Training XGBoost ({len(train):,} samples)", unit="tree", leave=True)
+    pbar = tqdm(
+        total=n_estimators,
+        desc=f"  Training XGBoost ({len(train):,} samples)",
+        unit="tree",
+        dynamic_ncols=True,
+        colour="green",
+        leave=True,
+    )
 
-    if XGBProgressBarCallback is not None:
-        model_params["callbacks"] = [XGBProgressBarCallback(pbar)]
+    if _TqdmXGBCallback is not None:
+        model_params["callbacks"] = [_TqdmXGBCallback(pbar)]
 
     model = XGBRegressor(**model_params)
     x_train, y_train = split_xy(train)
@@ -149,7 +164,6 @@ def tune_xgboost(
     x_train, y_train = split_xy(train)
     total_fits = n_iter * cv
     start_time = time.time()
-    pbar = tqdm(total=total_fits, desc=f"  Tuning XGBoost ({n_iter} iters x {cv} folds)", unit="fit", leave=True)
 
     search_space = {
         "n_estimators": [200, 300, 400, 500],
@@ -168,7 +182,28 @@ def tune_xgboost(
         tree_method="hist",
         device="cuda",
     )
-    search = RandomizedSearchCV(
+
+    print(f"  Tuning XGBoost: {n_iter} iters x {cv} folds = {total_fits} fits ...")
+    pbar = tqdm(
+        total=total_fits,
+        desc="  Hyperparameter Search",
+        unit="fit",
+        dynamic_ncols=True,
+        colour="yellow",
+        leave=True,
+    )
+
+    class _ProgressCV(RandomizedSearchCV):
+        """RandomizedSearchCV that ticks a tqdm bar after each fit."""
+
+        def _run_search(self, evaluate_candidates):
+            def _tick(params):
+                results = evaluate_candidates(params)
+                pbar.update(len(params) * cv)
+                return results
+            super()._run_search(_tick)
+
+    search = _ProgressCV(
         estimator=model,
         param_distributions=search_space,
         n_iter=n_iter,
@@ -179,24 +214,9 @@ def tune_xgboost(
         verbose=0,
     )
 
-    class ProgressParallel(joblib.parallel.Parallel):
-        def __init__(self, progress_bar: tqdm, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self._progress_bar = progress_bar
-
-        def print_progress(self):
-            self._progress_bar.update(1)
-            try:
-                super().print_progress()
-            except Exception:
-                pass
-
-    old_parallel = joblib.parallel.Parallel
     try:
-        joblib.parallel.Parallel = lambda *a, **kw: ProgressParallel(pbar, *a, **kw)
         search.fit(x_train, y_train)
     finally:
-        joblib.parallel.Parallel = old_parallel
         pbar.close()
 
     elapsed = time.time() - start_time
