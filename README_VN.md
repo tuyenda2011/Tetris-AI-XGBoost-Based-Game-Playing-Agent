@@ -1,133 +1,104 @@
-# Tetris AI: Agent Chơi Game Dựa Trên XGBoost
+# Tetris AI: XGBoost-Based Game Playing Agent
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white" alt="Python" />
   <img src="https://img.shields.io/badge/XGBoost-2.0%2B-EE6C4D?logo=xgboost&logoColor=white" alt="XGBoost" />
+  <img src="https://img.shields.io/badge/Pygame-2.6-F8E71C?logo=python&logoColor=black" alt="Pygame" />
+  <img src="https://img.shields.io/badge/Status-Ho%C3%A0n%20Th%C3%A0nh-6C5CE7" alt="Status" />
   <img src="https://img.shields.io/badge/License-MIT-00C853" alt="License" />
-  <img src="https://img.shields.io/badge/Status-Complete-6C5CE7" alt="Status" />
 </p>
 
 <p align="center">
-  🌐 <a href="README.md">Tiếng Anh</a> | <b>Tiếng Việt</b>
+  🌐 <a href="README.md">English</a> | <b>Vietnamese</b>
 </p>
 
-Một dự án Học máy Nâng cao huấn luyện mô hình **XGBoost Regressor** để chọn vị trí thả khối Tetris tối ưu dựa trên các đặc trưng hình học của bàn chơi.
+## Demo
+
+<table align="center">
+  <tr>
+    <td align="center"><b>Mô hình XGBoost</b><br>(AI tự học)</td>
+    <td align="center"><b>Thuật toán Heuristic</b><br>(Chuyên gia)</td>
+    <td align="center"><b>Random</b><br>(Chơi bừa)</td>
+  </tr>
+  <tr>
+    <td><img src="assets/xgboost_demo.gif" width="280"></td>
+    <td><img src="assets/heuristic_demo.gif" width="280"></td>
+    <td><img src="assets/random_demo.gif" width="280"></td>
+  </tr>
+</table>
+
+## Dự án này có gì thú vị?
+
+Dự án này dạy AI chơi Tetris không phải bằng cách bắt nó chơi đi chơi lại hàng triệu lần cho đến khi khôn ra (như cách Học Tăng Cường hay làm), mà bằng cách cho nó "nhìn lén" một cao thủ chơi vài trăm ván.
+
+Cụ thể, thay vì nhìn vào từng điểm ảnh trên màn hình, AI (**XGBoost**) sẽ nhìn vào bàn cờ và tư duy theo kiểu không gian: *"Nước đi này tạo ra nhiều lỗ hổng quá, không được! Nước đi kia xóa được nhiều hàng, tuyệt vời!"* 
+
+Chỉ bằng cách phân tích cấu trúc bàn cờ qua 200 ván chơi mẫu, AI đã tự tìm ra quy luật và chơi giỏi đến mức bất ngờ!
 
 ---
 
-## 📌 Tổng Quan Dự Án
+## Cách AI hoạt động (Dưới góc độ kỹ thuật)
 
-Khác với Học tăng cường (DQN/PPO) học từ ảnh thô qua cơ chế thử-sai, dự án này sử dụng phương pháp **Học có giám sát trên không gian nước đi ứng viên (Candidate-Action Learning)**:
+### 1. AI nhìn nhận trò chơi ra sao?
+Thay vì quyết định xem nên bấm nút `TRÁI`, `PHẢI`, hay `XUỐNG`, AI trong dự án này sẽ xem xét **tất cả các vị trí có thể đặt gạch**. Với mỗi khối gạch đang rơi, nó sẽ tính toán xem nếu rơi xuống đáy thì bàn cờ trông sẽ như thế nào. 
+Nhiệm vụ của AI là chấm điểm từng viễn cảnh đó và chọn ra viễn cảnh điểm cao nhất.
 
-1. **Sinh vị trí ứng viên**: Đối với mỗi khối gạch xuất hiện, tính toán tất cả các vị trí thả hợp lệ (bao gồm góc xoay và tọa độ cột).
-2. **Mô phỏng & Trích xuất đặc trưng**: Mô phỏng thử từng vị trí hạ khối và trích xuất 12 đặc trưng hình học (số lỗ trống, độ gồ ghề, chiều cao, số hàng xóa được...).
-3. **Chấm điểm & Quyết định**: Dùng mô hình XGBoost để đánh giá điểm chất lượng của từng vị trí ứng viên và thực thi nước đi có điểm số cao nhất.
+### 2. Các chỉ số AI quan tâm (Feature Extraction)
+Để chấm điểm một bàn cờ tương lai, AI sẽ tính toán nhanh các chỉ số sau:
+- `landing_height`: Khối gạch nằm ở độ cao bao nhiêu?
+- `lines_cleared`: Xóa được mấy hàng?
+- `row_transitions` / `col_transitions`: Bàn cờ bị lởm chởm, đứt gãy nhiều không?
+- `holes`: Có bao nhiêu ô trống bị bịt kín không thể nhét gạch vào được nữa?
+- `wells`: Có bị kẹt ở những cái khe quá hẹp không?
+- `bumpiness`: Độ nhấp nhô giữa các cột gạch.
 
-```text
-Trạng Thái Bàn Chơi & Khối Gạch
-               │
-    Sinh Các Vị Trí Thả Hợp Lệ (Xoay & Tọa Độ Cột)
-               │
-Mô Phỏng & Trích Xuất 12 Đặc Trưng Hình Học (Topology Features)
-               │
-   XGBoost Regressor (Dự Đoán Điểm Chất Lượng Action)
-               │
-   Chọn & Thực Thi Nước Đi Có Điểm Cao Nhất (Max Score)
-```
-
----
-
-## 🔬 Các Đặc Trưng Bàn Chơi (Engineered Features)
-
-Mô hình đánh giá các nước đi ứng viên dựa trên 12 đặc trưng hình học của bàn chơi sau khi đặt khối:
-
-| Tên Feature | Mô Tả | Ý Nghĩa Trong Game |
-| :--- | :--- | :--- |
-| `cleared_lines` | Số hàng xóa được ngay lập tức (0–4) | Thưởng ăn điểm chính |
-| `aggregate_height` | Tổng chiều cao tất cả 10 cột | Phạt khi bàn chơi dâng quá cao |
-| `holes` | Tổng ô trống bị kẹt bên dưới ô đã lấp | Phạt cực nặng (ngăn tạo khoảng hở) |
-| `bumpiness` | Độ chênh lệch chiều cao giữa các cột liền kề | Giữ cho bề mặt bàn chơi bằng phẳng |
-| `wells` | Độ sâu của các giếng hẹp 1 cột | Tối ưu ô chờ cho khối I (thanh dài) |
-| `landing_height` | Độ cao của khối vừa đặt xuống | Khuyến khích hạ khối ở vị trí thấp |
-| `max_height` | Cột cao nhất trên bàn chơi | Cảnh báo nguy cơ thua game |
-| `min_height` | Cột thấp nhất trên bàn chơi | Đo độ cao nền đáy |
-| `height_variance` | Phương sai chiều cao các cột | Đo độ cân bằng tổng thể |
-| `occupied_cells` | Tổng số ô gạch đang có trên bàn | Đánh giá độ lấp đầy bàn chơi |
-| `row_density` | Mật độ lấp đầy trung bình các hàng | Đo độ đặc của khối gạch theo chiều ngang |
-| `col_density` | Mật độ lấp đầy trung bình các cột | Đo độ đặc của khối gạch theo chiều dọc |
+### 3. Dạy AI như thế nào?
+- **Thu thập dữ liệu:** Một thuật toán chuyên gia (được code bằng toán học tối ưu hóa) sẽ chơi game và sinh ra hàng ngàn vị trí thả gạch.
+- **Học thuật toán:** Mô hình `XGBoost` sẽ nhìn vào các chỉ số kể trên và học cách dự đoán chính xác số điểm mà chuyên gia sẽ chấm cho nước đi đó.
 
 ---
 
-## ⚙️ Quy Trình Thực Thi Dự Án (Pipeline 5 Bước)
+## Đánh giá hiệu năng
 
-Kích hoạt môi trường Conda trước khi chạy các lệnh:
+Sau khi train, mô hình XGBoost đạt được hiệu suất khoảng ~85% so với chính thuật toán chuyên gia mà nó bắt chước. Điều này chứng tỏ các chỉ số (features) được chọn lọc ở trên là cực kỳ chính xác.
+
+<p align="center">
+  <img src="results/figures/lines_cleared_distribution.png" width="48%" alt="Lines Cleared Box Plot">
+  <img src="results/figures/feature_importance.png" width="48%" alt="XGBoost Feature Importance">
+</p>
+
+*Trái: Biểu đồ so sánh cho thấy XGBoost vượt xa random và đuổi sát nút chuyên gia. Phải: Biểu đồ SHAP cho thấy AI tự nhận ra rằng `holes` (Lỗ hổng) và `bumpiness` (Độ nhấp nhô) là hai yếu tố chí mạng nhất quyết định sự sống còn trong game.*
+
+---
+
+## Hướng dẫn chạy thử
+
+### 1. Cài Đặt
+Tải code về và cài đặt môi trường bằng Conda:
 ```bash
+git clone https://github.com/tuyenda2011/Tetris-AI-XGBoost-Based-Game-Playing-Agent.git
+cd Tetris-AI-XGBoost-Based-Game-Playing-Agent
+conda create -n tetris python=3.10 -y
 conda activate tetris
+pip install -r requirements.txt
 ```
 
-### Bước 1: Kiểm Tra Hệ Thống (Unit Tests)
-Kiểm tra logic môi trường game, trích xuất feature và quy tắc sinh nước đi:
+### 2. Chạy toàn bộ quy trình (Pipeline)
+Bạn có thể tự tay chạy lại quá trình sinh dữ liệu, train model và đánh giá AI:
 ```bash
-python -m pytest tests/ -v
-```
-
-### Bước 2: Sinh Dữ Liệu Huấn Luyện (Dataset Generation)
-Sinh tập dữ liệu đa luồng (`ProcessPoolExecutor`) có thanh progress bar hiển thị % thời gian thực:
-```bash
+# 1. Thu thập dữ liệu từ chuyên gia (Chạy đa luồng song song)
 python scripts/generate_dataset.py --config configs/dataset_quality.yaml
-```
 
-### Bước 3: Huấn Luyện Mô Hình (Train Model)
-Train và tự động tinh chỉnh mô hình XGBoost Regressor sử dụng file cấu hình:
-```bash
+# 2. Train mô hình XGBoost
 python scripts/train_model.py --config configs/model_train.yaml
-```
 
-### Bước 4: Đánh Giá Hiệu Năng (Evaluation)
-So sánh hiệu năng của XGBoost Agent với Random Agent baseline:
-```bash
+# 3. Đánh giá tốc độ và số điểm AI đạt được
 python scripts/evaluate_agent.py --episodes 20 --max-pieces 2000 --seed 42
 ```
 
-### Bước 5: Mở Demo Giao Diện Đồ Họa (Pygame GUI)
-Mở cửa sổ đồ họa xem AI chơi game Tetris thời gian thực:
+### 3. Tự mình xem AI chơi (Giao diện đồ họa)
+Để tận mắt chứng kiến AI chơi Tetris siêu mượt mà, hãy chạy lệnh sau:
 ```bash
-# XGBoost Model Agent
-python scripts/play_gui.py --agent xgboost --seed 42 --delay-ms 150
-
-# Heuristic Agent (Oracle)
-python scripts/play_gui.py --agent heuristic --seed 42 --delay-ms 150
-
-# Random Baseline Agent
-python scripts/play_gui.py --agent random --seed 42 --delay-ms 150
+python scripts/play_gui.py
 ```
-
-> 🕹️ **Phím tắt GUI:** `UP` / `DOWN` tăng/giảm tốc độ · `SPACE` tạm dừng · `R` chơi lại · `ESC` thoát
-
----
-
-## 🗂️ Cấu Trúc Thư Mục Dự Án
-
-```text
-Tetris-AI-XGBoost-Based-Game-Playing-Agent/
-├── configs/                     # File cấu hình YAML
-│   └── dataset_quality.yaml     # Tham số sinh dataset
-├── src/                         # Mã nguồn cốt lõi
-│   ├── environment.py           # Engine Tetris chuẩn Gymnasium API
-│   ├── features.py               # Module trích xuất 12 đặc trưng bàn chơi
-│   ├── actions.py                # Sinh nước đi ứng viên hợp lệ
-│   ├── dataset.py                # Sinh dataset đa luồng (multiprocessing)
-│   ├── model.py                  # Module mô hình XGBoost
-│   ├── agent.py                  # Các loại Agent (Random, Heuristic, XGBoost)
-│   ├── train.py                  # Pipeline huấn luyện mô hình
-│   └── evaluate.py               # Suite đánh giá hiệu năng
-├── scripts/                     # Kịch bản thực thi CLI
-│   ├── generate_dataset.py       # Script sinh dataset
-│   ├── train_model.py            # Script train model
-│   ├── evaluate_agent.py         # Script đánh giá model
-│   └── play_gui.py               # Giao diện đồ họa Pygame
-├── tests/                       # Bộ kiểm thử tự động (Unit Tests)
-├── data/                        # File dữ liệu CSV đã xử lý
-├── models/                      # File mô hình đã train (.joblib)
-└── results/                     # Kết quả đánh giá và đồ thị
-```
+*(Bảng điều khiển: Dùng `LÊN`/`XUỐNG` để chọn người chơi, `ENTER` để bắt đầu, `SPACE` để tạm dừng, `M` để ra Menu, `ESC` để thoát)*
