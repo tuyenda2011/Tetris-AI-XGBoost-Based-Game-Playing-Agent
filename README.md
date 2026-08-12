@@ -65,8 +65,8 @@ For every candidate board state, the following 12 topological features are compu
 The XGBoost model successfully captures ~85% of the performance capability of the handcrafted mathematical formula, proving the effectiveness of the selected features.
 
 <p align="center">
-  <img src="results/figures/lines_cleared_distribution.png" width="48%" alt="Lines Cleared Box Plot">
-  <img src="results/figures/feature_importance.png" width="48%" alt="XGBoost Feature Importance">
+  <img src="assets/lines_cleared_distribution.png" width="48%" alt="Lines Cleared Box Plot">
+  <img src="assets/feature_importance.png" width="48%" alt="XGBoost Feature Importance">
 </p>
 
 *Left: Box plot showing the XGBoost model dramatically outperforming the random baseline and closely mimicking the Heuristic Oracle. Right: Feature importance indicating that `holes` and `bumpiness` are the most critical factors for survival.*

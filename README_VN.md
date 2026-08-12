@@ -63,8 +63,8 @@ Nhiệm vụ của AI là chấm điểm từng viễn cảnh đó và chọn ra
 Sau khi train, mô hình XGBoost đạt được hiệu suất khoảng ~85% so với chính thuật toán chuyên gia mà nó bắt chước. Điều này chứng tỏ các chỉ số (features) được chọn lọc ở trên là cực kỳ chính xác.
 
 <p align="center">
-  <img src="results/figures/lines_cleared_distribution.png" width="48%" alt="Lines Cleared Box Plot">
-  <img src="results/figures/feature_importance.png" width="48%" alt="XGBoost Feature Importance">
+  <img src="assets/lines_cleared_distribution.png" width="48%" alt="Lines Cleared Box Plot">
+  <img src="assets/feature_importance.png" width="48%" alt="XGBoost Feature Importance">
 </p>
 
 *Trái: Biểu đồ so sánh cho thấy XGBoost vượt xa random và đuổi sát nút chuyên gia. Phải: Biểu đồ SHAP cho thấy AI tự nhận ra rằng `holes` (Lỗ hổng) và `bumpiness` (Độ nhấp nhô) là hai yếu tố chí mạng nhất quyết định sự sống còn trong game.*
